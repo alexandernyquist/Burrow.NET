@@ -39,17 +39,17 @@ namespace Burrow.Internal
             UpdateSerializzer = s => _serializer = s;
         }
 
-        public virtual IBasicConsumer CreateConsumer<T>(IModel channel, string subscriptionName, Action<T> onReceiveMessage, ushort? consumerThreadCount)
+        public virtual IBasicConsumer CreateConsumer<T>(IModel channel, string subscriptionName, string queueName, Action<T> onReceiveMessage, ushort? consumerThreadCount)
         {
-            var messageHandler = MessageHandlerFactory.Create<T>(subscriptionName, (msg, evt) => onReceiveMessage(msg));
+            var messageHandler = MessageHandlerFactory.Create<T>(subscriptionName, queueName, (msg, evt) => onReceiveMessage(msg));
             var consumer = new BurrowConsumer(channel, messageHandler, _watcher, true, (consumerThreadCount > 0 ? consumerThreadCount.Value : Global.DefaultConsumerBatchSize));
             _createdConsumers.Add(consumer);
             return consumer;
         }
 
-        public virtual IBasicConsumer CreateAsyncConsumer<T>(IModel channel, string subscriptionName, Action<T, MessageDeliverEventArgs> onReceiveMessage, ushort? consumerThreadCount)
+        public virtual IBasicConsumer CreateAsyncConsumer<T>(IModel channel, string subscriptionName, string queueName, Action<T, MessageDeliverEventArgs> onReceiveMessage, ushort? consumerThreadCount)
         {
-            var messageHandler = MessageHandlerFactory.Create(subscriptionName, onReceiveMessage);
+            var messageHandler = MessageHandlerFactory.Create(subscriptionName, queueName, onReceiveMessage);
             var consumer = new BurrowConsumer(channel, messageHandler, _watcher, false, (consumerThreadCount > 0 ? consumerThreadCount.Value : Global.DefaultConsumerBatchSize));
             _createdConsumers.Add(consumer);
             return consumer;

@@ -31,9 +31,9 @@ namespace Burrow
             _watcher = watcher;
         }
         
-        public virtual IMessageHandler Create<T>(string subscriptionName, Action<T, MessageDeliverEventArgs> msgHandlingAction)
+        public virtual IMessageHandler Create<T>(string subscriptionName, string queueName, Action<T, MessageDeliverEventArgs> msgHandlingAction)
         {
-            return new DefaultMessageHandler<T>(subscriptionName, msgHandlingAction, _consumerErrorHandler, _messageSerializer, _watcher);
+            return new DefaultMessageHandler<T>(subscriptionName, queueName, msgHandlingAction, _consumerErrorHandler, _messageSerializer, _watcher);
         }
 
         public void Dispose()

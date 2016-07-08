@@ -15,6 +15,7 @@ namespace Burrow
     {
         protected readonly string _typeName = Global.DefaultTypeNameSerializer.Serialize(typeof(T));
         protected readonly string _subscriptionName;
+        protected readonly string _queueName;
         protected readonly IRabbitWatcher _watcher;
         protected readonly Action<T, MessageDeliverEventArgs> _msgHandlingAction;
         protected readonly IConsumerErrorHandler _consumerErrorHandler;
@@ -27,11 +28,12 @@ namespace Burrow
         /// Initialize a DefaultMessageHandler
         /// </summary>
         /// <param name="subscriptionName"></param>
+        /// <param name="queueName"></param>
         /// <param name="msgHandlingAction"></param>
         /// <param name="consumerErrorHandler"></param>
         /// <param name="messageSerializer"></param>
         /// <param name="watcher"></param>
-        public DefaultMessageHandler(string subscriptionName, 
+        public DefaultMessageHandler(string subscriptionName, string queueName,
                                      Action<T, MessageDeliverEventArgs> msgHandlingAction,
                                      IConsumerErrorHandler consumerErrorHandler, 
                                      ISerializer messageSerializer, 
@@ -58,6 +60,7 @@ namespace Burrow
             }
 
             _subscriptionName = subscriptionName;
+            _queueName = queueName;
             _watcher = watcher;
             _consumerErrorHandler = consumerErrorHandler;
             _messageSerializer = messageSerializer;
@@ -91,7 +94,7 @@ namespace Burrow
         public virtual void HandleError(BasicDeliverEventArgs eventArg, Exception exception)
         {
             _watcher.ErrorFormat(BuildErrorLogMessage(eventArg, exception));
-            _consumerErrorHandler.HandleError(eventArg, exception);
+            _consumerErrorHandler.HandleError(_queueName, eventArg, exception);
         }
         
         [ExcludeFromCodeCoverage]

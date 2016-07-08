@@ -22,7 +22,7 @@ namespace Burrow
         /// <param name="onReceiveMessage"></param>
         /// <param name="consumerThreadCount">The number of threads to process messaages, Default is Global.DefaultConsumerBatchSize</param>
         /// <returns></returns>
-        IBasicConsumer CreateConsumer<T>(IModel channel, string subscriptionName, Action<T> onReceiveMessage, ushort? consumerThreadCount = null);
+        IBasicConsumer CreateConsumer<T>(IModel channel, string subscriptionName, string queueName, Action<T> onReceiveMessage, ushort? consumerThreadCount = null);
 
         /// <summary>
         /// Create a asynchronous IBasicConsumer which can spawn 1 or more threads to consume messages from the queue, this consumer should NOT ack the messages after handling them.
@@ -34,7 +34,7 @@ namespace Burrow
         /// <param name="onReceiveMessage"></param>
         /// <param name="consumerThreadCount">The number of threads to process messaages, Default is Global.DefaultConsumerBatchSize</param>
         /// <returns></returns>
-        IBasicConsumer CreateAsyncConsumer<T>(IModel channel, string subscriptionName, Action<T, MessageDeliverEventArgs> onReceiveMessage, ushort? consumerThreadCount = null);
+        IBasicConsumer CreateAsyncConsumer<T>(IModel channel, string subscriptionName, string queueName, Action<T, MessageDeliverEventArgs> onReceiveMessage, ushort? consumerThreadCount = null);
 
         /// <summary>
         /// Dispose/clear all created consumer once the connection to RabbitMQ server is dropped

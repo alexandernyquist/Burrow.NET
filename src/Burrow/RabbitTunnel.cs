@@ -367,15 +367,17 @@ namespace Burrow
         public Subscription Subscribe<T>(SubscriptionOption<T> subscriptionOption)
         {
             TryConnectBeforeSubscribing();
+            var queueName = (subscriptionOption.RouteFinder ?? _routeFinder).FindQueueName<T>(subscriptionOption.SubscriptionName);
+
             Func<IModel, IBasicConsumer> createConsumer = channel => 
-                _consumerManager.CreateConsumer(channel, 
-                                                subscriptionOption.SubscriptionName, 
+                _consumerManager.CreateConsumer(channel,
+                                                subscriptionOption.SubscriptionName,
+                                                queueName,
                                                 subscriptionOption.MessageHandler, 
                                                 subscriptionOption.BatchSize <= 0 
                                                                              ? (ushort)1
                                                                              : subscriptionOption.BatchSize);
 
-            var queueName = (subscriptionOption.RouteFinder ?? _routeFinder).FindQueueName<T>(subscriptionOption.SubscriptionName);
             var prefetchSize = GetProperPrefetchSize(subscriptionOption.QueuePrefetchSize);
 
             return CreateSubscription(subscriptionOption.SubscriptionName, queueName, createConsumer, prefetchSize);
@@ -384,15 +386,17 @@ namespace Burrow
         public Subscription SubscribeAsync<T>(AsyncSubscriptionOption<T> subscriptionOption)
         {
             TryConnectBeforeSubscribing();
+            var queueName = (subscriptionOption.RouteFinder ?? _routeFinder).FindQueueName<T>(subscriptionOption.SubscriptionName);
+
             Func<IModel, IBasicConsumer> createConsumer = channel => 
                 _consumerManager.CreateAsyncConsumer(channel, 
-                                                     subscriptionOption.SubscriptionName, 
+                                                     subscriptionOption.SubscriptionName,
+                                                     queueName,
                                                      subscriptionOption.MessageHandler, 
                                                      subscriptionOption.BatchSize <= 0 
                                                                                    ? (ushort)1 
                                                                                    : subscriptionOption.BatchSize);
-
-            var queueName = (subscriptionOption.RouteFinder ?? _routeFinder).FindQueueName<T>(subscriptionOption.SubscriptionName);
+            
             var prefetchSize = GetProperPrefetchSize(subscriptionOption.QueuePrefetchSize);
 
             return CreateSubscription(subscriptionOption.SubscriptionName, queueName, createConsumer, prefetchSize);
@@ -417,6 +421,7 @@ namespace Burrow
                 MessageHandler = onReceiveMessage,
                 BatchSize = 1,
                 QueuePrefetchSize = Global.PreFetchSize,
+                QueueName = _routeFinder.FindQueueName<T>(subscriptionName)
             });
         }
 
@@ -439,6 +444,7 @@ namespace Burrow
                 MessageHandler = onReceiveMessage,
                 BatchSize = batchSize ?? Global.DefaultConsumerBatchSize,
                 QueuePrefetchSize = Global.PreFetchSize,
+                QueueName = _routeFinder.FindQueueName<T>(subscriptionName)
             });
         }
 

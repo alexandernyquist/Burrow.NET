@@ -14,6 +14,6 @@ namespace Burrow
         /// <param name="subscriptionName"></param>
         /// <param name="msgHandlingAction"></param>
         /// <returns></returns>
-        IMessageHandler Create<T>(string subscriptionName, Action<T, MessageDeliverEventArgs> msgHandlingAction);
+        IMessageHandler Create<T>(string subscriptionName, string queueName, Action<T, MessageDeliverEventArgs> msgHandlingAction);
     }
 }

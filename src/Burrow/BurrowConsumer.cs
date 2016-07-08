@@ -109,7 +109,7 @@ namespace Burrow
                     if (BatchSize > 1)
                     {
                         handler = HandleMessageDeliveryInSeperatedThread;
-                    }
+                    }   
 
                     while (_status == ConsumerStatus.Active && !_channelShutdown)
                     {
@@ -307,7 +307,7 @@ namespace Burrow
         public ConsumerStatus Status => _status;
 
         protected bool IsDisposed => _status == ConsumerStatus.Disposed;
-
+        
         public virtual void Dispose()
         {
             if (IsDisposed)

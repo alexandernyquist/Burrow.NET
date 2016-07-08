@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using RabbitMQ.Client;
@@ -12,15 +14,18 @@ namespace Burrow.Internal
     /// </summary>
     public class ConsumerErrorHandler : IConsumerErrorHandler, IObserver<ISerializer>
     {
-        private readonly string _errorQueue;
-        private readonly string _errorExchange;
+        private readonly Func<string, string> _errorQueue;
+        private readonly Func<string, string> _routingKey;
+
         private readonly IDurableConnection _durableConnection;
         private readonly IRabbitWatcher _watcher;
         private readonly object _channelGate = new object();
-        
+
         private ISerializer _serializer;
-        private bool _errorQueueDeclared;
-        private bool _errorQueueBound;
+
+        private readonly string _errorExchange;
+
+        private readonly HashSet<string> _initializedErrorQueues = new HashSet<string>();
 
         /// <summary>
         /// Initialize an error handler
@@ -47,41 +52,35 @@ namespace Burrow.Internal
             _serializer = serializer;
             _watcher = watcher;
 
-            _errorQueue = Global.DefaultErrorQueueName ?? "Burrow.Queue.Error";
             _errorExchange = Global.DefaultErrorExchangeName ?? "Burrow.Exchange.Error";
+            _routingKey = queueName => queueName;
+            _errorQueue = queueName => queueName + ".errors";
         }
 
-        private void DeclareErrorQueue(IModel model)
+        private void InitializeErrorExchange(IModel model)
         {
-            if (!_errorQueueDeclared)
+            model.ExchangeDeclare(_errorExchange, ExchangeType.Topic, durable: true);
+        }
+
+        private void InitializeAndBindErrorQueue(IModel model, string errorQueueName, string routingKey)
+        {
+            // We are locked by _channelGate
+            if (_initializedErrorQueues.Contains(errorQueueName))
             {
-                model.QueueDeclare(_errorQueue,
-                    durable: true,
-                    exclusive: false,
-                    autoDelete: false,
-                    arguments: null);
-                
-                _errorQueueDeclared = true;
+                return;
             }
+
+            model.QueueDeclare(errorQueueName,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: null
+            );
+
+            model.QueueBind(errorQueueName, _errorExchange, routingKey);
+            _initializedErrorQueues.Add(errorQueueName);
         }
-
-        private void DeclareErrorExchangeAndBindToErrorQueue(IModel model)
-        {
-            if (!_errorQueueBound)
-            {
-                model.ExchangeDeclare(_errorExchange, ExchangeType.Direct, durable: true);
-                model.QueueBind(_errorQueue, _errorExchange, string.Empty);
-
-                _errorQueueBound = true;
-            }
-        }
-
-        protected void InitializeErrorExchangeAndQueue(IModel model)
-        {
-            DeclareErrorQueue(model);
-            DeclareErrorExchangeAndBindToErrorQueue(model);
-        }
-
+        
         protected virtual byte[] CreateErrorMessage(BasicDeliverEventArgs devliverArgs, Exception exception)
         {
             var messageAsString = Encoding.UTF8.GetString(devliverArgs.Body);
@@ -112,21 +111,25 @@ namespace Burrow.Internal
         {
         }
 
-        public virtual void HandleError(BasicDeliverEventArgs deliverEventArgs, Exception exception)
+        public virtual void HandleError(string queue, BasicDeliverEventArgs deliverEventArgs, Exception exception)
         {
+            var errorQueue = _errorQueue(queue);
+            var routingKey = _routingKey(queue);
+
             try
             {
                 using (var model = _durableConnection.CreateChannel())
                 {
                     lock (_channelGate)
                     {
-                        InitializeErrorExchangeAndQueue(model);
+                        InitializeErrorExchange(model);
+                        InitializeAndBindErrorQueue(model, errorQueue, routingKey);
                     }
 
                     var messageBody = CreateErrorMessage(deliverEventArgs, exception);
                     var properties = model.CreateBasicProperties();
                     properties.SetPersistent(true);
-                    model.BasicPublish(_errorExchange, string.Empty, properties, messageBody);
+                    model.BasicPublish(_errorExchange, routingKey, properties, messageBody);
                 }
             }
             catch (ConnectFailureException)
@@ -152,7 +155,7 @@ namespace Burrow.Internal
                 _watcher.ErrorFormat("ConsumerErrorHandler: Failed to publish error message\nException is:\n" + unexpecctedException);
             }
         }
-
+        
         [ExcludeFromCodeCoverage]
         public void OnNext(ISerializer value)
         {
