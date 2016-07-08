@@ -33,7 +33,5 @@ namespace Burrow
         /// A callback method to process received message
         /// </summary>
         public Action<T, MessageDeliverEventArgs> MessageHandler { get; set; }
-
-        public string QueueName { get; set; }
     }
 }

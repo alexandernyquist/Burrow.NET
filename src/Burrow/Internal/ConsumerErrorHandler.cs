@@ -53,8 +53,8 @@ namespace Burrow.Internal
             _watcher = watcher;
 
             _errorExchange = Global.DefaultErrorExchangeName ?? "Burrow.Exchange.Error";
+            _errorQueue = Global.DefaultErrorQueueName ?? (queue => queue + ".errors");
             _routingKey = queueName => queueName;
-            _errorQueue = queueName => queueName + ".errors";
         }
 
         private void InitializeErrorExchange(IModel model)

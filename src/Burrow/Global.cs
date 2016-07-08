@@ -52,7 +52,7 @@ namespace Burrow
         /// The error queue name where error messages will be published to.
         /// <para>You don't have to create this queue, the library will create it when there is an error</para>
         /// </summary>
-        public static string DefaultErrorQueueName = "Burrow.Queue.Error";
+        public static Func<string, string> DefaultErrorQueueName = consumerQueue => consumerQueue + ".errors";
 
         /// <summary>
         /// The error exchange name where error messages will be published to

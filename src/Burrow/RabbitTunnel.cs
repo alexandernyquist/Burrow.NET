@@ -421,7 +421,6 @@ namespace Burrow
                 MessageHandler = onReceiveMessage,
                 BatchSize = 1,
                 QueuePrefetchSize = Global.PreFetchSize,
-                QueueName = _routeFinder.FindQueueName<T>(subscriptionName)
             });
         }
 
@@ -444,7 +443,6 @@ namespace Burrow
                 MessageHandler = onReceiveMessage,
                 BatchSize = batchSize ?? Global.DefaultConsumerBatchSize,
                 QueuePrefetchSize = Global.PreFetchSize,
-                QueueName = _routeFinder.FindQueueName<T>(subscriptionName)
             });
         }
 
